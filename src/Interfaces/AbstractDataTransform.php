@@ -6,5 +6,5 @@ namespace SchemaTransformer\Interfaces;
 
 interface AbstractDataTransform
 {
-    public function transform(array $data): array;
+	public function transform(array $data): array;
 }

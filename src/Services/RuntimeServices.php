@@ -12,11 +12,13 @@ use SchemaTransformer\Interfaces\AbstractService;
 use SchemaTransformer\Transforms\DataSanitizers\SanitizeReachmeeJobPostingLink;
 use SchemaTransformer\Transforms\ReachmeeJobPostingTransform;
 use SchemaTransformer\Transforms\StratsysTransform;
+use SchemaTransformer\Transforms\VismaJobPostingTransform;
 
 class RuntimeServices
 {
     private AbstractService $jobPostingService;
     private AbstractService $stratsysService;
+    private AbstractService $vismaService;
 
     public function __construct(
         AbstractDataReader $reader,
@@ -39,6 +41,12 @@ class RuntimeServices
             new StratsysTransform(),
             $converter
         );
+        $this->vismaService   = new Service(
+            $reader,
+            $writer,
+            new VismaJobPostingTransform([]),
+            $converter
+        );
     }
     public function getJobPostingService(): AbstractService
     {
@@ -47,5 +55,10 @@ class RuntimeServices
     public function getStratsysService(): AbstractService
     {
         return $this->stratsysService;
+    }
+
+    public function getVismaService(): AbstractService
+    {
+        return $this->vismaService;
     }
 }

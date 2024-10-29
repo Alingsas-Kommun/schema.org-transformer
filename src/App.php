@@ -9,6 +9,7 @@ use SchemaTransformer\IO\FileReader;
 use SchemaTransformer\IO\FileWriter;
 use SchemaTransformer\IO\HttpReader;
 use SchemaTransformer\IO\HttpWriter;
+use SchemaTransformer\IO\HttpXmlReader;
 use SchemaTransformer\Services\AuthService;
 use SchemaTransformer\Services\RuntimeServices;
 
@@ -27,7 +28,8 @@ class App
             "authpath"         => "",
             "authclientid"     => "",
             "authclientsecret" => "",
-            "authscope"        => ""
+            "authscope"        => "",
+            "contenttype" => 'json'
         ], $options);
 
         if (empty($cmd->source)) {
@@ -71,9 +73,11 @@ class App
             $sourceheaders[] = $token;
         }
 
+        $contentType = $cmd->contenttype ?? 'json';
+
         // Check if source is url or file
         $reader = filter_var($cmd->source, FILTER_VALIDATE_URL) ?
-            new HttpReader($sourceheaders) :
+            ($contentType === 'xml' ? new HttpXmlReader($sourceheaders) : new HttpReader($sourceheaders)) :
             new FileReader();
 
         // Check if output to file or screen
@@ -99,6 +103,12 @@ class App
                 break;
             case 'stratsys':
                 $result = $services->getStratsysService()->execute(
+                    $cmd->source,
+                    $cmd->output
+                );
+                break;
+            case 'visma':
+                $result = $services->getVismaService()->execute(
                     $cmd->source,
                     $cmd->output
                 );
