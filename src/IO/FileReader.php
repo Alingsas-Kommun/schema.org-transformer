@@ -15,14 +15,11 @@ class FileReader implements AbstractDataReader
             return false;
         }
 
-        // Check file extension
         $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
 
         if ($extension === 'xml') {
-            // For XML files
             return ['content' => $file]; // Return XML as string in content key
         } else {
-            // For JSON files (default behavior)
             return json_decode($file, true);
         }
     }

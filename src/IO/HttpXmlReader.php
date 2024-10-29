@@ -17,7 +17,6 @@ class HttpXmlReader implements AbstractDataReader
 
     public function read(string $path): array|false
     {
-        error_log('XML READER');
         $curl = curl_init($path);
 
         $headers = array_merge([
@@ -26,7 +25,6 @@ class HttpXmlReader implements AbstractDataReader
 
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
-        // Add these SSL options
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);  // Disable SSL verification
         curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);  // Disable host verification
 
