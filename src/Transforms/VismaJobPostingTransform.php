@@ -93,7 +93,8 @@ class VismaJobPostingTransform implements AbstractDataTransform
             error_log("XML Parse Error: " . $e->getMessage());
             return [];
         }
-
+ 
+        
 
         foreach ($assignments as $assignment) {
             try {
