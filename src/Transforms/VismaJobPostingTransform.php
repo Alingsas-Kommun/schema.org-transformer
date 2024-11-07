@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SchemaTransformer\Transforms;
 
 use SchemaTransformer\Interfaces\AbstractDataTransform;
+use SchemaTransformer\IO\HttpXmlReader;
 use Spatie\SchemaOrg\Schema;
 use SimpleXMLElement;
 
@@ -14,39 +15,99 @@ class VismaJobPostingTransform implements AbstractDataTransform
     /**
      * @param \SchemaTransformer\Interfaces\SanitizerInterface[] $sanitizers
      */
-    public function __construct(private array $sanitizers) {}
+
+    private $guidGroup;
+    public function __construct(private array $sanitizers, string $guidGroup)
+    {
+        $this->guidGroup = $guidGroup;
+        error_log($this->guidGroup);
+    }
+
+    private function formatText($text) {
+
+        $text = str_replace(["\r\n\r\n", "\n\n", "\r\r"], '[[paragraph]]', $text);
+    
+
+        $text = nl2br($text);
+    
+        $paragraphs = explode('[[paragraph]]', $text);
+    
+      
+        $formattedText = '';
+        foreach ($paragraphs as $para) {
+            $formattedText .= '<p>' . trim($para) . '</p>';
+        }
+    
+        return $formattedText;
+    }
+
+    private function getSingleItemData(string $guid)
+    {
+        $reader = new HttpXmlReader();
+        $data = $reader->read('https://recruit.visma.com/External/Feeds/AssignmentItem.ashx?guidGroup=' . $this->guidGroup . '&guidAssignment=' . $guid);
+
+        $xmlString = $data['content'];
+        $cleanXml = $this->sanitizeXML($xmlString);
+        $xml = new SimpleXMLElement($cleanXml, LIBXML_NOCDATA | LIBXML_NOWARNING);
+        $assignment_item = $xml->xpath('//Assignment');
+
+        return $assignment_item ?? [];
+    }
+
+    private function getContactPersons($assignment): array
+    {
+        $contacts = [];
+        $contactNodes = $assignment->Localization->AssignmentLoc->ContactPersons->ContactPerson ?? [];
+
+        foreach ($contactNodes as $contact) {
+            $contacts[] = Schema::contactPoint()
+                ->contactType((string)$contact->Title)
+                ->name((string)$contact->ContactName)
+                ->email((string)$contact->Email)
+                ->telephone((string)$contact->Telephone);
+        }
+        return $contacts;
+    }
+
 
     public function transform(array $data): array
     {
         $output = [];
 
         if (empty($data['content'])) {
-            error_log("No XML content provided");
-            return [];
+            throw new \InvalidArgumentException("No XML content provided");
         }
 
         $xmlString = $data['content'];
 
         try {
             $cleanXml = $this->sanitizeXML($xmlString);
-            $xml = new SimpleXMLElement($cleanXml, LIBXML_NOCDATA | LIBXML_NOWARNING);
 
+            if (str_contains($cleanXml, 'Kunde inte hitta gruppen')) {
+                   die("Process terminated due to invalid group"); 
+            }
+    
+            $xml = new SimpleXMLElement($cleanXml, LIBXML_NOCDATA | LIBXML_NOWARNING);
             $assignments = $xml->xpath('//Assignment');
         } catch (\Exception $e) {
             error_log("XML Parse Error: " . $e->getMessage());
             return [];
         }
 
-        $assignments = $xml->xpath('//Assignment');
-        error_log("Found " . count($assignments) . " assignments");
 
         foreach ($assignments as $assignment) {
             try {
                 $localization = $assignment->Localization->AssignmentLoc[0] ?? null;
+
                 if (!$localization) {
                     continue;
                 }
+                $guid = (string)$assignment->Guid ?? null;
 
+                if (!$guid) {
+                    continue;
+                }
+                
                 $departments = $localization->xpath('Departments/Department');
 
                 $accountName = (string)$assignment->AccountName;
@@ -68,23 +129,43 @@ class VismaJobPostingTransform implements AbstractDataTransform
                     'name' => (string)($localization->Municipality->Name ?? '')
                 ];
 
+                $assignment_item = $this->getSingleItemData($guid);
+                $single_item = $assignment_item[0];
+
+                $direct_apply = (string) $single_item->ApplicationMethods->ApplicationMethod->ValueXml->web->url;
+                $fullDescription = "<h2>Om arbetsplatsen</h2>";
+                $fullDescription .= (string)$single_item->Localization->AssignmentLoc->DepartmentDescr ?? '';
+                $fullDescription .= "<h2>Arbetsuppgifter</h2>";
+                $fullDescription .=  (string)$single_item->Localization->AssignmentLoc->WorkDescr ?? '';
+                $fullDescription .= "<h2>Kvalifikationer</h2>";
+                $fullDescription .= (string)$single_item->Localization->AssignmentLoc->Qualifications ?? '';
+                $fullDescription .= "<h2>Övrig information</h2>";
+                $fullDescription .= (string)$single_item->Localization->AssignmentLoc->AdditionalInfo ?? '';
+                $fullDescription = $this->formatText($fullDescription);
+
                 $jobPosting = Schema::jobPosting()
                     ->identifier((string)$assignment->RefNo)
                     ->totalJobOpenings((string)$assignment->NumberOfJobs)
                     ->title((string)$localization->AssignmentTitle)
-                    ->description((string)$localization->WorkDescr)
+                    ->description($fullDescription)
                     ->jobStartDate((string)$localization->EmploymentStartDateDescr)
                     ->responsibilities((string)$localization->WorkDescr)
-                    ->datePosted((string)$assignment->PublishStartDate)
+                    ->datePosted($this->formatDate((string)$assignment->PublishStartDate))
                     ->experienceRequirements((string)$localization->WorkExperiencePrerequisite->Name)
                     ->employmentType((string)$localization->EmploymentGrade->Name ?? '')
                     ->workHours((string)$localization->EmploymentType->Name ?? '')
-                    ->validThrough((string)$assignment->ApplicationEndDate);
+                    ->validThrough($this->formatDate((string)$assignment->ApplicationEndDate))
+                    ->url($direct_apply)
+                    ->directApply($direct_apply);
 
                 if (!empty($org['nameorgunit'])) {
                     $jobPosting->hiringOrganization(
                         Schema::organization()->name($org['nameorgunit'])
                     );
+                }
+
+                if (!empty($contacts = $this->getContactPersons($single_item))) {
+                    $jobPosting->applicationContact($contacts);
                 }
 
                 if (!empty($unit['nameorgunit'])) {
@@ -118,6 +199,11 @@ class VismaJobPostingTransform implements AbstractDataTransform
 
         error_log("Total job postings processed: " . count($output));
         return $output;
+    }
+
+    private function formatDate(string $date)
+    {
+        return $formattedDate = date('Y-m-d', strtotime($date));
     }
 
     protected function normalizeArray(?array $in, int $length, array $fallback): array

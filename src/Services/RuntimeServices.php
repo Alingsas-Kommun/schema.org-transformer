@@ -44,7 +44,7 @@ class RuntimeServices
         $this->vismaService   = new Service(
             $reader,
             $writer,
-            new VismaJobPostingTransform([]),
+            new VismaJobPostingTransform([], '16fb545c-0894-4ae8-82bd-c991d98caaf8'),
             $converter
         );
     }

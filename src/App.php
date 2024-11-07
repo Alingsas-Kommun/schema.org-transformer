@@ -29,7 +29,8 @@ class App
             "authclientid"     => "",
             "authclientsecret" => "",
             "authscope"        => "",
-            "contenttype" => 'json'
+            "contenttype" => 'json',
+            "guidgroup" => '',
         ], $options);
 
         if (empty($cmd->source)) {
