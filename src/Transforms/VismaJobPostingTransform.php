@@ -23,21 +23,22 @@ class VismaJobPostingTransform implements AbstractDataTransform
         error_log($this->guidGroup);
     }
 
-    private function formatText($text) {
+    private function formatText($text)
+    {
 
         $text = str_replace(["\r\n\r\n", "\n\n", "\r\r"], '[[paragraph]]', $text);
-    
+
 
         $text = nl2br($text);
-    
+
         $paragraphs = explode('[[paragraph]]', $text);
-    
-      
+
+
         $formattedText = '';
         foreach ($paragraphs as $para) {
             $formattedText .= '<p>' . trim($para) . '</p>';
         }
-    
+
         return $formattedText;
     }
 
@@ -84,17 +85,17 @@ class VismaJobPostingTransform implements AbstractDataTransform
             $cleanXml = $this->sanitizeXML($xmlString);
 
             if (str_contains($cleanXml, 'Kunde inte hitta gruppen')) {
-                   die("Process terminated due to invalid group"); 
+                die("Process terminated due to invalid group");
             }
-    
+
             $xml = new SimpleXMLElement($cleanXml, LIBXML_NOCDATA | LIBXML_NOWARNING);
             $assignments = $xml->xpath('//Assignment');
         } catch (\Exception $e) {
             error_log("XML Parse Error: " . $e->getMessage());
             return [];
         }
- 
-        
+
+
 
         foreach ($assignments as $assignment) {
             try {
@@ -108,7 +109,7 @@ class VismaJobPostingTransform implements AbstractDataTransform
                 if (!$guid) {
                     continue;
                 }
-                
+
                 $departments = $localization->xpath('Departments/Department');
 
                 $accountName = (string)$assignment->AccountName;
@@ -155,6 +156,7 @@ class VismaJobPostingTransform implements AbstractDataTransform
                     ->experienceRequirements((string)$localization->WorkExperiencePrerequisite->Name)
                     ->employmentType((string)$localization->EmploymentGrade->Name ?? '')
                     ->workHours((string)$localization->EmploymentType->Name ?? '')
+                    ->relevantOccupation((string)$localization->EmploymentType->Name ?? '')
                     ->validThrough($this->formatDate((string)$assignment->ApplicationEndDate))
                     ->url($direct_apply)
                     ->directApply($direct_apply);
