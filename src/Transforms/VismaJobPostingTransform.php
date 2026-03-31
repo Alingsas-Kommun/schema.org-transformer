@@ -42,6 +42,29 @@ class VismaJobPostingTransform implements AbstractDataTransform
 		return $formattedText;
 	}
 
+	/**
+	 * Wraps bare http(s) URLs in plain text as anchor elements before description HTML is assembled.
+	 */
+	private function linkifyUrlsInPlainText(string $text): string
+	{
+		if ($text === '') {
+			return $text;
+		}
+		$linked = preg_replace_callback(
+			'#https?://[^\s<>"\']+#i',
+			static function (array $matches): string {
+				$url     = $matches[0];
+				$core    = rtrim($url, '.,;:!?)\]');
+				$suffix  = $core !== $url ? substr($url, strlen($core)) : '';
+				$escaped = htmlspecialchars($core, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+				return '<a href="' . $escaped . '">' . $escaped . '</a>'
+					. htmlspecialchars($suffix, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+			},
+			$text
+		);
+		return $linked ?? $text;
+	}
+
 	private function getSingleItemData(string $guid)
 	{
 		$reader = new HttpXmlReader();
@@ -163,33 +186,41 @@ class VismaJobPostingTransform implements AbstractDataTransform
 				];
 
 				$assignment_item = $this->getSingleItemData($guid);
-				$single_item     = $assignment_item[0];
-				$single_loc      = $single_item->Localization->AssignmentLoc;
+				if (empty($assignment_item[0])) {
+					continue;
+				}
+				$single_item = $assignment_item[0];
+				$single_loc  = $single_item->Localization->AssignmentLoc;
 
 				$direct_apply = (string) $single_item->ApplicationMethods->ApplicationMethod->ValueXml->web->url;
 
 				// Extract additional fields from single item
-				$additionalInfo       = (string) ($single_loc->AdditionalInfo ?? '');
-				$employmentGrade      = (string) ($single_loc->EmploymentGrade->Name ?? '');
-				$employmentDuration   = $this->extractEmploymentDurationText($assignment, $single_loc, $localization);
+				$additionalInfoRaw = (string) ($single_loc->AdditionalInfo ?? '');
+				$employmentGrade   = (string) ($single_loc->EmploymentGrade->Name ?? '');
+				$employmentDuration = $this->extractEmploymentDurationText($assignment, $single_loc, $localization);
+
+				$departmentDescr = $this->linkifyUrlsInPlainText((string) ($single_loc->DepartmentDescr ?? ''));
+				$workDescrBody   = $this->linkifyUrlsInPlainText((string) ($single_loc->WorkDescr ?? ''));
+				$qualificationsBody = $this->linkifyUrlsInPlainText((string) ($single_loc->Qualifications ?? ''));
+				$additionalInfoLinked = $this->linkifyUrlsInPlainText($additionalInfoRaw);
 
 				// Extract OccupationClassification LevelId 2 -> Descr
 				$occupationClassification = '';
 				$occupationNodes          = $single_loc->xpath('OccupationClassifications/OccupationClassification[@LevelId="2"]');
 				if (! empty($occupationNodes)) {
-					$occupationClassification = (string) ($occupationNodes[0]->Descr ?? '');
+					$occupationClassification = $this->linkifyUrlsInPlainText((string) ($occupationNodes[0]->Descr ?? ''));
 				}
 
 				$fullDescription  = "<h2>Om arbetsplatsen</h2>";
-				$fullDescription .= (string) $single_item->Localization->AssignmentLoc->DepartmentDescr ?? '';
+				$fullDescription .= $departmentDescr;
 				$fullDescription .= "<h2>Arbetsuppgifter</h2>";
-				$fullDescription .= (string) $single_item->Localization->AssignmentLoc->WorkDescr ?? '';
+				$fullDescription .= $workDescrBody;
 				$fullDescription .= "<h2>Kvalifikationer</h2>";
-				$fullDescription .= (string) $single_item->Localization->AssignmentLoc->Qualifications ?? '';
+				$fullDescription .= $qualificationsBody;
 				$fullDescription .= "<h2>Övrig information</h2>";
 				$otherInfoParts = [];
-				if ($additionalInfo !== '') {
-					$otherInfoParts[] = $additionalInfo;
+				if ($additionalInfoRaw !== '') {
+					$otherInfoParts[] = $additionalInfoLinked;
 				}
 				if ($occupationClassification !== '') {
 					$otherInfoParts[] = '<h3>Beskrivning</h3>' . "\n\n" . $occupationClassification;
@@ -214,8 +245,8 @@ class VismaJobPostingTransform implements AbstractDataTransform
 					->directApply($direct_apply !== '');
 
 				// Add AdditionalInfo as special commitment if available
-				if (! empty($additionalInfo)) {
-					$jobPosting->specialCommitments($additionalInfo);
+				if ($additionalInfoRaw !== '') {
+					$jobPosting->specialCommitments($additionalInfoLinked);
 				}
 
 				if ($employmentDuration !== '') {
@@ -256,7 +287,7 @@ class VismaJobPostingTransform implements AbstractDataTransform
 
 				$jobPosting->setProperty('@version', md5(json_encode($jobPosting->toArray())));
 				$output[] = $jobPosting->toArray();
-			} catch (\Exception $e) {
+			} catch (\Throwable $e) {
 				error_log($e->getMessage());
 				continue;
 			}
