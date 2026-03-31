@@ -206,10 +206,10 @@ class VismaJobPostingTransform implements AbstractDataTransform
 
 				// Extract OccupationClassification LevelId 2 -> Descr
 				$occupationClassification = '';
-				$occupationNodes          = $single_loc->xpath('OccupationClassifications/OccupationClassification[@LevelId="2"]');
-				if (! empty($occupationNodes)) {
-					$occupationClassification = $this->linkifyUrlsInPlainText((string) ($occupationNodes[0]->Descr ?? ''));
-				}
+				// $occupationNodes          = $single_loc->xpath('OccupationClassifications/OccupationClassification[@LevelId="2"]');
+				// if (! empty($occupationNodes)) {
+				// 	$occupationClassification = $this->linkifyUrlsInPlainText((string) ($occupationNodes[0]->Descr ?? ''));
+				// }
 
 				$fullDescription  = "<h2>Om arbetsplatsen</h2>";
 				$fullDescription .= $departmentDescr;
