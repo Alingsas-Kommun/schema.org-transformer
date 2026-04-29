@@ -109,6 +109,38 @@ class VismaJobPostingTransform implements AbstractDataTransform
 		return $endDate;
 	}
 
+	/**
+	 * Merges Assignment.EmploymentStartDate with AssignmentLoc.EmploymentStartDateDescr (Visma sentinel 1753-01-01 = no fixed date).
+	 */
+	private function mergeEmploymentJobStart(SimpleXMLElement $assignment, SimpleXMLElement $singleItem, SimpleXMLElement $singleLoc, SimpleXMLElement $listLoc): string
+	{
+		$descr = trim((string) ($singleLoc->EmploymentStartDateDescr ?? ''));
+		if ($descr === '') {
+			$descr = trim((string) ($listLoc->EmploymentStartDateDescr ?? ''));
+		}
+		$dateRaw = trim((string) ($singleItem->EmploymentStartDate ?? ''));
+		if ($dateRaw === '') {
+			$dateRaw = trim((string) ($assignment->EmploymentStartDate ?? ''));
+		}
+		$datePart = '';
+		if ($dateRaw !== '') {
+			$startTs = strtotime($dateRaw);
+			if ($startTs !== false) {
+				$startDate = date('Y-m-d', $startTs);
+				if ($startDate !== '1753-01-01') {
+					$datePart = $startDate;
+				}
+			}
+		}
+		if ($datePart !== '' && $descr !== '') {
+			return $datePart . ' – ' . $descr;
+		}
+		if ($datePart !== '') {
+			return $datePart;
+		}
+		return $descr;
+	}
+
 	private function getContactPersons($assignment): array
 	{
 		$contacts     = [];
@@ -194,10 +226,16 @@ class VismaJobPostingTransform implements AbstractDataTransform
 
 				$direct_apply = (string) $single_item->ApplicationMethods->ApplicationMethod->ValueXml->web->url;
 
+				$readMoreUrl = trim((string) ($single_item->ReadMoreUrl ?? ''));
+				if ($readMoreUrl === '') {
+					$readMoreUrl = trim((string) ($assignment->ReadMoreUrl ?? ''));
+				}
+
 				// Extract additional fields from single item
 				$additionalInfoRaw = (string) ($single_loc->AdditionalInfo ?? '');
 				$employmentGrade   = (string) ($single_loc->EmploymentGrade->Name ?? '');
 				$employmentDuration = $this->extractEmploymentDurationText($assignment, $single_loc, $localization);
+				$jobStartMerged     = $this->mergeEmploymentJobStart($assignment, $single_item, $single_loc, $localization);
 
 				$departmentDescr = $this->linkifyUrlsInPlainText((string) ($single_loc->DepartmentDescr ?? ''));
 				$workDescrBody   = $this->linkifyUrlsInPlainText((string) ($single_loc->WorkDescr ?? ''));
@@ -233,7 +271,7 @@ class VismaJobPostingTransform implements AbstractDataTransform
 					->totalJobOpenings((string) $assignment->NumberOfJobs)
 					->title((string) $localization->AssignmentTitle)
 					->description($fullDescription)
-					->jobStartDate((string) $localization->EmploymentStartDateDescr)
+					->jobStartDate($jobStartMerged)
 					->responsibilities((string) $localization->WorkDescr)
 					->datePosted($this->formatDate((string) $assignment->PublishStartDate))
 					->experienceRequirements((string) $localization->WorkExperiencePrerequisite->Name)
@@ -252,6 +290,10 @@ class VismaJobPostingTransform implements AbstractDataTransform
 				if ($employmentDuration !== '') {
 					$jobPosting->setProperty('jobDuration', $employmentDuration);
 					$jobPosting->setProperty('employmentDuration', $employmentDuration);
+				}
+
+				if ($readMoreUrl !== '') {
+					$jobPosting->setProperty('readMoreUrl', $readMoreUrl);
 				}
 
 				if (! empty($org['nameorgunit'])) {
