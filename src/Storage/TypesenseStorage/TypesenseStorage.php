@@ -39,18 +39,38 @@ class TypesenseStorage implements StorageInterface
 
     private function getImportErrors(array $result): array
     {
-        if (is_array($result)) {
-            return array_filter(array_map(function ($item) {
-                if (isset($item['success']) && !$item['success']) {
-                    $this->logger->warning("Failed to import document: " . $item['error']['message']);
-                    return $item;
-                }
-
+        return array_values(array_filter(array_map(function ($item) {
+            if (!is_array($item) || ($item['success'] ?? true) === true) {
                 return null;
-            }, $result));
+            }
+
+            $this->logger->warning('Failed to import document: ' . $this->importErrorMessage($item));
+
+            return $item;
+        }, $result)));
+    }
+
+    /**
+     * Read an import error from a Typesense JSONL result line.
+     *
+     * Typesense returns error as a string. Older callers expected error.message.
+     *
+     * @param array<string, mixed> $item Decoded import result.
+     *
+     * @return string
+     */
+    private function importErrorMessage(array $item): string
+    {
+        $error = $item['error'] ?? null;
+        if (is_string($error) && $error !== '') {
+            return $error;
         }
 
-        return [];
+        if (is_array($error) && is_string($error['message'] ?? null) && $error['message'] !== '') {
+            return $error['message'];
+        }
+
+        return 'Unknown import error';
     }
 
     private function clearStorage(): void
