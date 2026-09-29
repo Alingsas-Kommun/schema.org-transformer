@@ -17,8 +17,8 @@ class MapStartDate extends AbstractWPLegacyEventMapper
     public function map(Event $event, array $data): Event
     {
         $startDates = array_filter(array_map(
-            fn ($d) => $d['start_date'] ?? null,
-            $data['all_occasions'] ?? []
+            fn($d) => $d['start_date'] ?? null,
+            $data['all_occasions'] ?? $data['occasions'] ?? []
         ));
         return empty($startDates) ? $event : $event->startDate(
             min($startDates)

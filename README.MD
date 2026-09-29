@@ -56,7 +56,6 @@ The scripts accept `--target=console` and `--target=typesense`. The default is `
 | `run/Event.legacy.php` | `WP_LEGACY_EVENTS_API_URL` | `WPLegacyEventTransform` | `Event` | `WordpressPaginator` |
 | `run/Event.library.php` | `AXIELL_EVENTS_URL` | `AxiellEventTransform` | `Event` | `NullPaginator` |
 | `run/Event.tix.php` | `TIX_EVENTS_API_URL` | `TixEventTransform` | `Event` | `WordpressPaginator` |
-| `run/Event.vastsverige.php` | `VASTSVERIGE_EVENTS_API_URL` | `VastsverigeEventTransform` | `Event` | `PathOffsetPaginator` |
 | `run/ExhibitionEvent.php` | `WORDPRESS_EXHIBITION_EVENT_PATH` | `WPExhibitionEventTransform` | `ExhibitionEvent` | `WordpressPaginator` |
 | `run/JobPosting.public.php` | `REACHMEE_HELSINGBORG_PATH` | `ReachmeeJobPostingTransform` | `JobPosting.public` | `NullPaginator` |
 | `run/JobPosting.private.php` | `REACHMEE_INTRANAT_HELSINGBORG_PATH` | `ReachmeeJobPostingTransform` | `JobPosting.private` | `NullPaginator` |
@@ -81,7 +80,6 @@ The `run/*` scripts expect these variables unless noted otherwise:
 - `WP_LEGACY_EVENTS_API_URL`
 - `AXIELL_EVENTS_URL`
 - `TIX_EVENTS_API_URL`
-- `VASTSVERIGE_EVENTS_API_URL`
 - `WORDPRESS_EXHIBITION_EVENT_PATH`
 - `REACHMEE_HELSINGBORG_PATH`
 - `REACHMEE_INTRANAT_HELSINGBORG_PATH`
@@ -105,7 +103,6 @@ After a successful run, a script triggers its monitor webhook when the correspon
 - `WP_LEGACY_EVENTS_MONITOR_URL`
 - `AXIELL_EVENTS_MONITOR_URL`
 - `TIX_EVENTS_MONITOR_URL`
-- `VASTSVERIGE_EVENTS_MONITOR_URL`
 - `WORDPRESS_EXHIBITION_EVENTS_MONITOR_URL`
 - `REACHMEE_HELSINGBORG_MONITOR_URL`
 - `REACHMEE_INTRANAT_HELSINGBORG_MONITOR_URL`

@@ -17,8 +17,8 @@ class MapEndDate extends AbstractWPLegacyEventMapper
     public function map(Event $event, array $data): Event
     {
         $endDates = array_filter(array_map(
-            fn ($d) => $d['end_date'] ?? null,
-            $data['all_occasions'] ?? []
+            fn($d) => $d['end_date'] ?? null,
+            $data['all_occasions'] ?? $data['occasions'] ?? []
         ));
         return empty($endDates) ? $event : $event->endDate(
             max($endDates)
