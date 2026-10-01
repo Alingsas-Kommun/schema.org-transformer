@@ -12,13 +12,15 @@ class TypesenseStorageFactory
     public static function create(
         TypesenseCollection $collection,
         array $collectionClearFilter,
-        LoggerInterface $logger
+        LoggerInterface $logger,
+        ?string $collectionName = null,
     ): TypesenseStorage {
         return new TypesenseStorage(
             new TypesenseStorageConfig(
                 TypesenseClientFactory::create(),
                 $collection,
-                $collectionClearFilter
+                $collectionClearFilter,
+                $collectionName
             ),
             $logger
         );

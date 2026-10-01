@@ -20,7 +20,8 @@ class StorageFactory
             Target::Typesense => TypesenseStorageFactory::create(
                 collection: $options['collection'] ?? null,
                 collectionClearFilter: $options['collectionClearFilter'] ?? null,
-                logger: $logger
+                logger: $logger,
+                collectionName: $options['collectionName'] ?? null,
             )
         };
     }

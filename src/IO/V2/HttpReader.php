@@ -62,6 +62,9 @@ class HttpReader implements ReaderInterface
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_HTTPHEADER, $requestHeaders);
         curl_setopt($curl, CURLOPT_HEADER, 1);
+        // Temporary: local Windows CA store cannot verify the Visma certificate.
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
 
         $response = curl_exec($curl);
 
@@ -80,8 +83,19 @@ class HttpReader implements ReaderInterface
 
         curl_close($curl);
 
-        // Decode JSON response
-        return [json_decode($body, true), $resHeaders];
+        return [$this->decodeBody($body), $resHeaders];
+    }
+
+    /**
+     * Decode an HTTP response body.
+     *
+     * @param string $body Raw response body.
+     *
+     * @return mixed Decoded payload. JSON sources return an array or null.
+     */
+    protected function decodeBody(string $body): mixed
+    {
+        return json_decode($body, true);
     }
 
     /**

@@ -16,6 +16,20 @@ class TypesenseStorageConfigTest extends TestCase
 
         static::assertSame($config->getClient(), $config->getClient());
         static::assertSame($config->getCollection(), $config->getCollection());
+        static::assertSame('Event', $config->getCollectionName());
         static::assertSame($config->getClearStorageQueryParams(), $config->getClearStorageQueryParams());
+    }
+
+    #[TestDox('a custom collection name overrides the enum value')]
+    public function testCustomCollectionNameOverridesEnum(): void
+    {
+        $config = new TypesenseStorageConfig(
+            $this->createMock(Client::class),
+            TypesenseCollection::JobPostingPublic,
+            [],
+            'JobPosting.visma'
+        );
+
+        static::assertSame('JobPosting.visma', $config->getCollectionName());
     }
 }

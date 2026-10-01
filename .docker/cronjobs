@@ -12,6 +12,10 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Schema Transformer: Pios Projects: Every 5 minutes
 */5 * * * * root php $SCRIPTS_HOME/Project.pios.php --target=typesense >> /proc/1/fd/1 2>> /proc/1/fd/2
 
+# Schema Transformer: Visma Recruit. Set VISMA_RECRUIT_PATH and VISMA_RECRUIT_GUID_GROUP first.
+# JobPosting.public.php replaces every JobPosting in the same collection, so leave that schedule off when this one runs.
+# */15 * * * * root php $SCRIPTS_HOME/JobPosting.visma.php --target=typesense >> /proc/1/fd/1 2>> /proc/1/fd/2
+
 # Schema Transformer: Helsingborg Intranat Reachmee: At every 2nd minute from 1 through 59.
 1-59/2 * * * * root php $SCRIPTS_HOME/JobPosting.private.php --target=typesense >> /proc/1/fd/1 2>> /proc/1/fd/2
 
