@@ -15,6 +15,7 @@ use SchemaTransformer\Transforms\Event\WPLegacyEvents\Mappers\MapEndDate;
 use SchemaTransformer\Transforms\Event\WPLegacyEvents\Mappers\MapIsAccessibleForFree;
 use SchemaTransformer\Transforms\Event\WPLegacyEvents\Mappers\MapEventAttendanceMode;
 use SchemaTransformer\Transforms\Event\WPLegacyEvents\Mappers\MapOrganizer;
+use SchemaTransformer\Transforms\Event\WPLegacyEvents\Mappers\MapContactPoint;
 use SchemaTransformer\Transforms\Event\WPLegacyEvents\Mappers\MapLocation;
 use SchemaTransformer\Transforms\Event\WPLegacyEvents\Mappers\MapImage;
 use SchemaTransformer\Transforms\Event\WPLegacyEvents\Mappers\MapEventSchedule;
@@ -44,6 +45,7 @@ class WPLegacyEventTransform extends TransformBase implements AbstractDataTransf
             new MapStartDate(),
             new MapEndDate(),
             new MapOrganizer(),
+            new MapContactPoint(),
             new MapLocation(),
             new MapImage(),
             new MapEventSchedule(),

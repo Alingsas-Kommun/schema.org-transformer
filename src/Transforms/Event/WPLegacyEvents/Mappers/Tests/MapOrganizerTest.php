@@ -58,12 +58,67 @@ final class MapOrganizerTest extends TestCase
         );
     }
 
+    #[TestDox('event::organizer is mapped from top-level organizers when embed is forbidden')]
+    public function testMapsTopLevelOrganizers()
+    {
+        (new TestHelper())->expectMapperToConvertSourceTo(
+            new MapOrganizer(),
+            '{
+                "organizers": [
+                    {
+                        "main_organizer": true,
+                        "organizer": "Franska Tesalongen",
+                        "organizer_link": "http://franskatesalongen.se/",
+                        "organizer_phone": "073-514 15 62",
+                        "organizer_email": "franskatesalongen@gmail.com"
+                    }
+                ],
+                "_embedded": {
+                    "organizers": [
+                        {
+                            "code": "rest_forbidden",
+                            "message": "Du har inte behörighet att göra detta.",
+                            "data": { "status": 401 }
+                        }
+                    ]
+                }
+            }',
+            Schema::event()->organizer([
+                Schema::organization()
+                    ->name('Franska Tesalongen')
+                    ->telephone('073-514 15 62')
+                    ->email('franskatesalongen@gmail.com')
+                    ->url('http://franskatesalongen.se/'),
+            ])
+        );
+    }
+
     #[TestDox('event::organizer([]) when no organizers are present')]
     public function testHandlesMissingOrganizers()
     {
         (new TestHelper())->expectMapperToConvertSourceTo(
             new MapOrganizer(),
             '{"id": 123}',
+            Schema::event()->organizer([])
+        );
+    }
+
+    #[TestDox('event::organizer([]) when embedded organizers are rest_forbidden')]
+    public function testIgnoresForbiddenEmbeddedOrganizers()
+    {
+        (new TestHelper())->expectMapperToConvertSourceTo(
+            new MapOrganizer(),
+            '{
+                "organizers": null,
+                "_embedded": {
+                    "organizers": [
+                        {
+                            "code": "rest_forbidden",
+                            "data": { "status": 401 }
+                        }
+                    ]
+                }
+            }',
             Schema::event()->organizer([])
         );
     }

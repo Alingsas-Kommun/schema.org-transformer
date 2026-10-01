@@ -33,6 +33,7 @@ final class WPLegacyEventTransformTest extends TestCase
             ->startDate(null)
             ->endDate(null)
             ->organizer([])
+            ->contactPoint([])
             ->location([])
             ->image([])
             ->eventSchedule([])
